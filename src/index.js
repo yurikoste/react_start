@@ -65,23 +65,32 @@ class Game extends React.Component {
     const current_coords = coords[coords.length - 1];
     const squares = current.squares.slice();
     const x_y = current_coords.x_y.slice();
+    let onSelectedRect = false;
 
-    if (calculateWinner(squares) || squares[i]) {
+    if (calculateWinner(squares)) {
       return;
     }
-    squares[i] = this.state.xIsNext ? 'X' : 'O';
-    x_y[0] = ~~(i / 3) + 1;
-    x_y[1] = i%3 + 1;
+
+    if (squares[i]) {
+      onSelectedRect = true;
+    }
+    else {
+      squares[i] = this.state.xIsNext ? 'X' : 'O';
+      x_y[0] = ~~(i / 3) + 1;
+      x_y[1] = i%3 + 1;
+    }
 
     this.setState({
-      history: history.concat([{
+      history: onSelectedRect? history : history.concat([{
         squares: squares
       }]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext,
-      coords: coords.concat([{
+      stepNumber: onSelectedRect? history.length-1 : history.length,
+      xIsNext: onSelectedRect? this.state.xIsNext : !this.state.xIsNext,
+      coords: onSelectedRect? coords : coords.concat([{
         x_y: x_y
       }]),
+      onSelectedRect: onSelectedRect,
+      SelectedRect: i,
     });
   }
 
@@ -97,16 +106,37 @@ class Game extends React.Component {
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
     const all_coords = this.state.coords;
+    let onSelectedRect = this.state.onSelectedRect;
+    const selectedRect = this.state.SelectedRect;
 
     const moves = history.map((step, move) => {
-      const desc = move ?
-        ' Go to move #' + move :
-        ' Go to game start';
-      const x_y = all_coords[move].x_y[0]+':'+all_coords[move].x_y[1]
+      const x_y = all_coords[move].x_y[0]+':'+all_coords[move].x_y[1];
+      let selectedRectCoords = -1
 
+      if (all_coords[move].x_y[0] === 1){
+        selectedRectCoords = (all_coords[move].x_y[0] + all_coords[move].x_y[1]) - 2;
+      }
+      else if (all_coords[move].x_y[0] === 2) {
+        selectedRectCoords = (all_coords[move].x_y[0] + all_coords[move].x_y[1]);
+      }
+      else if (all_coords[move].x_y[0] === 3) {
+        selectedRectCoords = (all_coords[move].x_y[0] + all_coords[move].x_y[1]) + 2;
+      }
+
+      const desc = move ?
+        x_y + ' Go to move #' + move :
+        ' Go to game start';
+      if (onSelectedRect === true && selectedRectCoords === selectedRect) {
+        onSelectedRect = false;
+        return (
+          <li key={move}>
+            <button className="button-selected-move" onClick={() => this.jumpTo(move)}>{desc}</button>
+          </li>
+        );
+      }
       return (
         <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>{x_y}{desc}</button>
+          <button onClick={() => this.jumpTo(move)}>{desc}</button>
         </li>
       );
     });
